@@ -70,6 +70,18 @@ https://www.rdocumentation.org/packages/sqldf/versions/0.4-11
 
 
 cat("\014")
+rm ~/sample.db ---> to remove 
+
+sqlite3 sample.db ---> to find 
+
+getwd() ---> to find out where file is located
+ 
+.quit 
+
+sqlite> .exit
+
+
+sqlite> .quit
 
 
 week5 ✅ Steps Completed
