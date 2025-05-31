@@ -1,0 +1,50 @@
+---
+title: "learning"
+output: html_document
+date: "2025-05-30"
+---
+
+
+## Set up database connection
+
+```{r setup, include=FALSE}
+library(DBI)
+library(RSQLite)
+dbcon <- dbConnect(RSQLite::SQLite(), dbname = "callingin_lessons.sqlite")
+knitr::opts_chunk$set(connection = "dbcon")
+```
+
+## Create table and insert sample data (guarantees it works)
+
+
+
+## View lessons from database
+
+```{sql lessonData, output.var ="lessons"}
+SELECT * FROM lesson;
+```
+
+```{r use-lessons}
+# Use the lessons data frame
+mean(lessons$llength)
+```
+
+```{sql long_lessons, output.var="filtered_lessons"}
+SELECT * FROM lesson WHERE llength > ?minLength;
+```
+
+```{r}
+print(filtered_lessons)
+```
+```{sql, output.var="short_lessons"}
+SELECT * FROM lesson WHERE llength < ?maxLength;
+```
+```{r}
+print(short_lessons)
+```
+
+## Disconnect from database
+
+```{r disconnect}
+dbDisconnect(dbcon)
+```

@@ -67,3 +67,28 @@ The preview shows you a rendered HTML copy of the contents of the editor. Conseq
 SQL Book:
 
 https://www.rdocumentation.org/packages/sqldf/versions/0.4-11
+
+
+cat("\014")
+
+
+week5 ✅ Steps Completed
+Connected to a SQLite database using R
+
+Created tables and inserted sample data
+
+Queried the database using dbGetQuery() and SQL chunks in .Rmd
+
+Used sqldf() to run SQL queries directly on R data frames
+
+Exported query results to CSV
+
+Wrote entire data frames into the SQLite database with dbWriteTable()
+
+Used prepared statements and explained bound parameters
+
+Handled and avoided warnings (like open result sets) with proper cleanup
+
+Managed, searched, and deleted .sqlite/.db files from your system
+
+Verified data, printed outputs, and wrapped up neatly!
