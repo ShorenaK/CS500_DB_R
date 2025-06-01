@@ -104,3 +104,11 @@ Handled and avoided warnings (like open result sets) with proper cleanup
 Managed, searched, and deleted .sqlite/.db files from your system
 
 Verified data, printed outputs, and wrapped up neatly!
+
+
+Avoid Warnings: Always Clear Results
+Always run dbClearResult() after dbSendQuery() or dbSendStatement() or you’ll get:
+
+“Warning: Closing open result set, pending rows”
+
+Use dbExecute() when you don't need to fetch or bind.
