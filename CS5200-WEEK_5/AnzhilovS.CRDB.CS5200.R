@@ -13,8 +13,7 @@ dbcon <- dbConnect(SQLite(), dbname = "assignmentDB-AnzhilovS.sqlitedb")
 # To enable foreign key constraint
 dbExecute(dbcon, "PRAGMA foreign_keys = ON;")
 
-# Drop tables if they already exist 
-# Dropping from the bottom of the dependency chain up order matters. 
+# Drop tables if they already exist, dropping from the bottom of the dependency chain up order. 
 dbExecute(dbcon, "DROP TABLE IF EXISTS EmployeeSupervisor")
 dbExecute(dbcon, "DROP TABLE IF EXISTS Organization")
 dbExecute(dbcon, "DROP TABLE IF EXISTS OfficeAssignment")
@@ -22,7 +21,6 @@ dbExecute(dbcon, "DROP TABLE IF EXISTS Employee")
 dbExecute(dbcon, "DROP TABLE IF EXISTS Office")
 dbExecute(dbcon, "DROP TABLE IF EXISTS employeeType")
 dbExecute(dbcon, "DROP TABLE IF EXISTS amenities")
-
 
 # ---- Tables Section ----
 
@@ -75,7 +73,7 @@ dbExecute(dbcon,
   );"
 )
 
-# Main: Organization (optional grouping entity)
+# Organization 
 dbExecute(dbcon, 
   "CREATE TABLE Organization (
     oID INTEGER PRIMARY KEY,
@@ -87,7 +85,7 @@ dbExecute(dbcon,
   );"
 )
 
-# Junction: EmployeeSupervisor 
+# Junction -- EmployeeSupervisor 
 dbExecute(dbcon, 
    "CREATE TABLE EmployeeSupervisor (
     eID TEXT,
@@ -101,8 +99,8 @@ dbExecute(dbcon,
 # ---- Inseration Section to Insert data ----
 
 # Amenities
-dbExecute(dbcon, "INSERT INTO Amenities (aID, name) VALUES (1, 'WiFi')")
-dbExecute(dbcon, "INSERT INTO Amenities (aID, name) VALUES (2, 'Projector')")
+dbExecute(dbcon, "INSERT INTO Amenities (aID, name) VALUES (1, 'Whiteboard')")
+dbExecute(dbcon, "INSERT INTO Amenities (aID, name) VALUES (2, 'Desks')")
 
 # EmployeeType
 dbExecute(dbcon, "INSERT INTO EmployeeType (etID, typeName) VALUES (1, 'Internal')")
@@ -126,6 +124,8 @@ dbExecute(dbcon, "INSERT INTO Organization (oID, name, eID, esID) VALUES (1, 'En
 # EmployeeSupervisor
 dbExecute(dbcon, "INSERT INTO EmployeeSupervisor (eID, esID) VALUES ('E002', 'E001')")
 
+# -------- Verification queries ----------
+
 # List all tables in the database
 print(dbListTables(dbcon))
 
@@ -138,8 +138,6 @@ print(dbGetQuery(dbcon, "
   FROM Employee e
   JOIN EmployeeType t ON e.etID = t.etID
 "))
-
-# -------- Verification queries ----------
 
 # Preview Office Assignments
 print(dbGetQuery(dbcon, "
