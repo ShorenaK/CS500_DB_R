@@ -30,6 +30,8 @@ https://sqlfiddle.com/
 
 https://www.r-project.org/
 https://posit.co/
+
+https://sqliteonline.com/
  
 https://posit.cloud/content/yours?sort=name_asc
 
