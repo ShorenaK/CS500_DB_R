@@ -1,19 +1,259 @@
 ---
-title: "R Notebook"
+title: "CS5200 Assignment 06.1 - Queriy a Database with SQL"
+author: "Shorena K. Anzhilov"
+date: "Summer 2025, June"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+```{r setup, include=False}
+# load libraries
+library(DBI)
+library(RSQLite)
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
-plot(cars)
+# Connection to the SQLite database
+con <- dbConnect(SQLite(), "OrdersDB.sqlitedb.db")
+```
+--- 1. ---
+## Names and phone numbers of all shippers, sorted by name
+```{sql connection=con}
+SELECT ShipperName, Phone
+FROM Shippers
+ORDER BY ShipperName;
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+--- 2. ---
+## Number of customers for each country
+```{sql connection=con}
+SELECT Country, COUNT(CustomerID) AS NumCust
+FROM Customers
+GROUP BY Country
+ORDER BY Country;
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+--- 3. ---
+## Number of products by supplier, min 5 products with supplier ID and name
+```{sql connection=con}
+SELECT s.SupplierID, s.SupplierName, COUNT(p.ProductID) AS ProductCount
+FROM Suppliers s
+JOIN Products p ON s.SupplierID = p.SupplierID
+GROUP BY s.SupplierID, s.SupplierName
+HAVING COUNT(p.ProductID) >= 5
+ORDER BY ProductCount DESC;
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+--- 4. ---
+## The most recent order by date, customer's ID, customer name, contact name, and date.
+```{sql connection=con}
+SELECT c.CustomerID, c.CustomerName, c.CustomerName, o.OrderDate
+FROM Orders o
+JOIN Customers c ON o.CustomerID = c.CustomerID
+WHERE o.OrderDate = (SELECT MAX(OrderDate) FROM Orders);
+```
+
+--- 5. ---
+## The total number of unique orders delivered by each shipper, ordered alphabetically by shipper name
+
+```{sql connection=con}
+SELECT s.ShipperName, COUNT(DISTINCT o.OrderID) AS TotalOrders
+FROM Shippers s
+JOIN Orders o ON s.ShipperID = o.ShipVia
+GROUP BY s.ShipperName
+ORDER BY s.ShipperName;
+```
+--- 6 ---
+## Quinity employees that never worked with a single customer, they appear in the Employees table but not in the Orders table
+
+```{sql connection=con}
+SELECT COUNT(*) AS EmployeesWithoutOrders
+FROM Employees
+WHERE EmployeeID NOT IN (SELECT DISTINCT EmployeeID FROM Orders);
+```
+--- 7. ----
+## Products that contain "Louisiana" at the beginning of the name of the product.
+```{sql connection=con}
+SELECT COUNT(*) AS LouisianaProducts
+FROM Products
+WHERE ProductName LIKE 'Louisiana%';
+```
+
+---- 8 ----
+## The total number of distinct countries to which at least one order was shipped.
+
+```{sql, connection=con}
+SELECT COUNT(DISTINCT Country) AS NumCountriesWithOrders
+FROM Customers;
+```
+
+---- 9 -----
+## Total amount (in terms of revenue) as well as the total number of orders sold by each employee? List the employee name, the total amount sold, and the total number of orders.
+
+```{sql, connection=con}
+SELECT e.LastName || ', ' || e.FirstName AS EmployeeName,
+       COUNT(DISTINCT o.OrderID) AS TotalOrders,
+       SUM(od.Quantity * p.Price) AS TotalRevenue
+FROM Employees e
+JOIN Orders o ON e.EmployeeID = o.EmployeeID
+JOIN OrderDetails od ON o.OrderID = od.OrderID
+JOIN Products p ON od.ProductID = p.ProductID
+GROUP BY e.EmployeeID
+ORDER BY TotalRevenue DESC;
+```
+
+--- 10 -----
+
+## Supplier ttah sells the least number of products but supplies at least one product?
+
+```{sql, connection=con}
+SELECT s.SupplierID, s.SupplierName, COUNT(p.ProductID) AS ProductCount
+FROM Suppliers s
+JOIN Products p ON s.SupplierID = p.SupplierID
+GROUP BY s.SupplierID
+HAVING COUNT(p.ProductID) >= 1
+ORDER BY ProductCount ASC
+LIMIT 1;
+```
+
+--- 11 ----
+
+## The product was ordered most often? List the product name and ID.
+
+```{sql, connection=con}
+SELECT p.ProductID, p.ProductName, SUM(od.Quantity) AS TotalOrdered
+FROM OrderDetails od
+JOIN Products p ON od.ProductID = p.ProductID
+GROUP BY p.ProductID
+ORDER BY TotalOrdered DESC
+LIMIT 1;
+```
+
+--- 12 ----
+
+## The product that generated the most revenue? List the product ID and name.
+
+```{sql, connection=con}
+SELECT p.ProductID, p.ProductName, SUM(od.Quantity * p.Price) AS Revenue
+FROM OrderDetails od
+JOIN Products p ON od.ProductID = p.ProductID
+GROUP BY p.ProductID
+ORDER BY Revenue DESC
+LIMIT 1;
+```
+
+--- 13 ----
+
+## What is the total amount spent by all customers who do live in either Brazil, Mexico, or Canada?
+
+```{sql, connection=con}
+SELECT SUM(od.Quantity * p.UnitPrice) AS TotalSpent
+FROM Orders o
+JOIN OrderDetails od ON o.OrderID = od.OrderID
+JOIN Products p ON od.ProductID = p.ProductID
+JOIN Customers c ON o.CustomerID = c.CustomerID
+WHERE c.Country IN ('Brazil', 'Mexico', 'Canada');
+```
+
+--- 14 ----
+
+## The difference in spending between the country to which the most was sold versus the country to which the least was sold
+
+```{sql, connection=con}
+WITH RevenueByCountry AS (
+    SELECT o.Customers AS Country, SUM(od.Quantity * p.Price) AS Revenue
+    FROM Orders o
+    JOIN OrderDetails od ON o.OrderID = od.OrderID
+    JOIN Products p ON od.ProductID = p.ProductID
+    GROUP BY o.Country
+)
+SELECT MAX(Revenue) - MIN(Revenue) AS RevenueDifference
+FROM RevenueByCountry;
+```
+
+--- 15 ----
+
+## Which country has the least number of customers?
+
+```{sql, connection=con}
+SELECT Country, COUNT(*) AS NumCustomers
+FROM Customers
+GROUP BY Country
+ORDER BY NumCustomers ASC
+LIMIT 1;
+```
+
+--- 16 ----
+
+## Employee that generated the most revenue (in terms of "dollar amount" sold)?
+
+```{sql, connection=con}
+SELECT e.EmployeeID, e.LastName || ', ' || e.FirstName AS EmployeeName,
+       SUM(od.Quantity * p.UnitPrice) AS TotalRevenue
+FROM Employees e
+JOIN Orders o ON e.EmployeeID = o.EmployeeID
+JOIN OrderDetails od ON o.OrderID = od.OrderID
+JOIN Products p ON od.ProductID = p.ProductID
+GROUP BY e.EmployeeID
+ORDER BY TotalRevenue DESC
+LIMIT 1;
+```
+
+--- 17 ---- 
+
+## Customers (name and ID) that have never bought anything
+
+```{sql, connection=con}
+SELECT CustomerID, CustomerName
+FROM Customers
+WHERE CustomerID NOT IN (SELECT DISTINCT CustomerID FROM Orders);
+```
+
+--- 18 ---
+
+## The average order total per country and List of the country and the average order total.
+
+```{sql, connection=con}
+SELECT c.Country AS Country,
+       AVG(od.Quantity * p.Price) AS AvgOrderTotal
+FROM Customers c
+JOIN OrderDetails od ON o.OrderDetailID = od.OrderID
+JOIN Products p ON od.ProductID = p.ProductID
+GROUP BY c.Country
+ORDER BY AvgOrderTotal DESC;
+```
+
+--- 19 ---
+
+## The customer that sent the most recent order. List of the Order ID, customer name, and country to which the order was shipped.
+
+```{sql, connection=con}
+SELECT o.OrderID, c.CustomerName AS CustomerName, c.Country
+FROM Orders o
+JOIN Customers c ON o.CustomerID = c.CustomerID
+WHERE o.OrderDate = (SELECT MAX(OrderDate) FROM Orders);
+```
+
+--- 20 ----
+
+## Number of unique suppliers, from how many different (unique) suppliers do the products come from
+
+```{sql, connection=con}
+SELECT COUNT(DISTINCT SupplierID) AS UniqueSuppliers
+FROM Products;
+```
+
+```{r disconnect, include=FALSE}
+# Step: Disconnect from the database
+dbDisconnect(con)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
