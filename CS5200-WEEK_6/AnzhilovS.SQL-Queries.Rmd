@@ -1,11 +1,13 @@
 ---
-title: "CS5200 Assignment 06.1 - Queriy a Database with SQL"
+title: "CS5200 Assignment 06.1 - Queriy a Database with SQL in R notebook"
 author: "Shorena K. Anzhilov"
 date: "Summer 2025, June"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
-```{r setup, include=False}
+```{r setup, include=FALSE}
 # load libraries
 library(DBI)
 library(RSQLite)
@@ -13,16 +15,22 @@ library(RSQLite)
 # Connection to the SQLite database
 con <- dbConnect(SQLite(), "OrdersDB.sqlitedb.db")
 ```
---- 1. ---
-## Names and phone numbers of all shippers, sorted by name
+
+# List tables -- additional for verification.
+```{r}
+dbListTables(con)
+```
+
+--- 1 ---
+## Names and phone numbers of all shippers, sorted by name.
 ```{sql connection=con}
 SELECT ShipperName, Phone
 FROM Shippers
 ORDER BY ShipperName;
 ```
 
---- 2. ---
-## Number of customers for each country
+--- 2 ---
+## Number of customers for each country.
 ```{sql connection=con}
 SELECT Country, COUNT(CustomerID) AS NumCust
 FROM Customers
@@ -30,48 +38,56 @@ GROUP BY Country
 ORDER BY Country;
 ```
 
---- 3. ---
-## Number of products by supplier, min 5 products with supplier ID and name
+--- 3 ---
+## The number of products by supplier ID and name, ordered from most to least, restricted to those suppliers who sell at least five products.
+```{sql connection=con}
+SELECT s.SupplierID, s.SupplierName, COUNT(p.ProductID) AS ProductNum
+FROM Suppliers s
+JOIN Products p ON s.SupplierID = p.SupplierID
+GROUP BY s.SupplierID, s.SupplierName
+HAVING COUNT(p.ProductID) >= 5
+ORDER BY ProductNum DESC;
+```
+## Product count for all suppliers this is part of step 3 -- additational. 
 ```{sql connection=con}
 SELECT s.SupplierID, s.SupplierName, COUNT(p.ProductID) AS ProductCount
 FROM Suppliers s
 JOIN Products p ON s.SupplierID = p.SupplierID
 GROUP BY s.SupplierID, s.SupplierName
-HAVING COUNT(p.ProductID) >= 5
 ORDER BY ProductCount DESC;
 ```
 
---- 4. ---
+--- 4 ---
 ## The most recent order by date, customer's ID, customer name, contact name, and date.
 ```{sql connection=con}
-SELECT c.CustomerID, c.CustomerName, c.CustomerName, o.OrderDate
+SELECT c.CustomerID, c.CustomerName, o.OrderDate
 FROM Orders o
 JOIN Customers c ON o.CustomerID = c.CustomerID
 WHERE o.OrderDate = (SELECT MAX(OrderDate) FROM Orders);
 ```
 
---- 5. ---
-## The total number of unique orders delivered by each shipper, ordered alphabetically by shipper name
+--- 5 ---
+## The total number of unique orders delivered by each shipper, ordered alphabetically by shipper name.
 
 ```{sql connection=con}
-SELECT s.ShipperName, COUNT(DISTINCT o.OrderID) AS TotalOrders
+SELECT s.ShipperName, COUNT(DISTINCT o.OrderID) AS TotalNumOrders
 FROM Shippers s
-JOIN Orders o ON s.ShipperID = o.ShipVia
+JOIN Orders o ON s.ShipperID = o.ShipperID
 GROUP BY s.ShipperName
 ORDER BY s.ShipperName;
 ```
 --- 6 ---
-## Quinity employees that never worked with a single customer, they appear in the Employees table but not in the Orders table
+## Quinity employees that never worked with a single customer, they appear in the Employees table but not in the Orders table.
 
 ```{sql connection=con}
-SELECT COUNT(*) AS EmployeesWithoutOrders
+SELECT COUNT(*) AS NumEmployeesWithoutOrders
 FROM Employees
 WHERE EmployeeID NOT IN (SELECT DISTINCT EmployeeID FROM Orders);
 ```
---- 7. ----
+--- 7 ----
 ## Products that contain "Louisiana" at the beginning of the name of the product.
 ```{sql connection=con}
-SELECT COUNT(*) AS LouisianaProducts
+SELECT COUNT(*) AS LouisianaProductsName
 FROM Products
 WHERE ProductName LIKE 'Louisiana%';
 ```
@@ -90,18 +106,19 @@ FROM Customers;
 ```{sql, connection=con}
 SELECT e.LastName || ', ' || e.FirstName AS EmployeeName,
        COUNT(DISTINCT o.OrderID) AS TotalOrders,
-       SUM(od.Quantity * p.Price) AS TotalRevenue
+       SUM(od.Quantity * p.Price) AS TotalRevenueAmount
 FROM Employees e
 JOIN Orders o ON e.EmployeeID = o.EmployeeID
 JOIN OrderDetails od ON o.OrderID = od.OrderID
 JOIN Products p ON od.ProductID = p.ProductID
 GROUP BY e.EmployeeID
-ORDER BY TotalRevenue DESC;
+ORDER BY TotalRevenueAmount DESC;
 ```
 
 --- 10 -----
 
-## Supplier ttah sells the least number of products but supplies at least one product?
+## Supplier that sells the least number of products but supplies at least one product.
+## I am assuming only one suppler here not suppliers so I am using LIMIT 1.
 
 ```{sql, connection=con}
 SELECT s.SupplierID, s.SupplierName, COUNT(p.ProductID) AS ProductCount
@@ -115,36 +132,36 @@ LIMIT 1;
 
 --- 11 ----
 
-## The product was ordered most often? List the product name and ID.
+## Listing the product name and ID of The product that was ordered most often. 
 
 ```{sql, connection=con}
-SELECT p.ProductID, p.ProductName, SUM(od.Quantity) AS TotalOrdered
+SELECT p.ProductID, p.ProductName, SUM(od.Quantity) AS TotalOrderedNum
 FROM OrderDetails od
 JOIN Products p ON od.ProductID = p.ProductID
 GROUP BY p.ProductID
-ORDER BY TotalOrdered DESC
+ORDER BY TotalOrderedNum DESC
 LIMIT 1;
 ```
 
 --- 12 ----
 
-## The product that generated the most revenue? List the product ID and name.
+## Listing the product with the product ID and name that that generated the most revenue.
 
 ```{sql, connection=con}
-SELECT p.ProductID, p.ProductName, SUM(od.Quantity * p.Price) AS Revenue
+SELECT p.ProductID, p.Productname, SUM(od.Quantity * p.Price) AS MostRevenue
 FROM OrderDetails od
 JOIN Products p ON od.ProductID = p.ProductID
 GROUP BY p.ProductID
-ORDER BY Revenue DESC
+ORDER BY MostRevenue DESC
 LIMIT 1;
 ```
 
 --- 13 ----
 
-## What is the total amount spent by all customers who do live in either Brazil, Mexico, or Canada?
+## Listing the total amount spent by all customers who live in either Brazil, Mexico, or Canada. 
 
 ```{sql, connection=con}
-SELECT SUM(od.Quantity * p.UnitPrice) AS TotalSpent
+SELECT SUM(od.Quantity * p.Price) AS TotalAmountSpent
 FROM Orders o
 JOIN OrderDetails od ON o.OrderID = od.OrderID
 JOIN Products p ON od.ProductID = p.ProductID
@@ -154,51 +171,52 @@ WHERE c.Country IN ('Brazil', 'Mexico', 'Canada');
 
 --- 14 ----
 
-## The difference in spending between the country to which the most was sold versus the country to which the least was sold
+## The difference in spending between the country to which the most was sold versus the country to which the least was sold.
 
 ```{sql, connection=con}
-WITH RevenueByCountry AS (
-    SELECT o.Customers AS Country, SUM(od.Quantity * p.Price) AS Revenue
+WITH SpendingByCountry AS (
+    SELECT c.Country, SUM(od.Quantity * p.Price) AS Spending
     FROM Orders o
     JOIN OrderDetails od ON o.OrderID = od.OrderID
     JOIN Products p ON od.ProductID = p.ProductID
-    GROUP BY o.Country
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    GROUP BY c.Country
 )
-SELECT MAX(Revenue) - MIN(Revenue) AS RevenueDifference
-FROM RevenueByCountry;
+SELECT MAX(Spending) - MIN(Spending) AS SpendingDifference
+FROM SpendingByCountry;
 ```
 
 --- 15 ----
 
-## Which country has the least number of customers?
+## Which country has the least number of customers.
 
 ```{sql, connection=con}
-SELECT Country, COUNT(*) AS NumCustomers
+SELECT Country, COUNT(*) AS LeastNumCustomers
 FROM Customers
 GROUP BY Country
-ORDER BY NumCustomers ASC
+ORDER BY LeastNumCustomers ASC
 LIMIT 1;
 ```
 
 --- 16 ----
 
-## Employee that generated the most revenue (in terms of "dollar amount" sold)?
+## Employee that generated the most revenue (in terms of "dollar amount" sold).
 
 ```{sql, connection=con}
 SELECT e.EmployeeID, e.LastName || ', ' || e.FirstName AS EmployeeName,
-       SUM(od.Quantity * p.UnitPrice) AS TotalRevenue
+       SUM(od.Quantity * p.Price) AS MostRevenue
 FROM Employees e
 JOIN Orders o ON e.EmployeeID = o.EmployeeID
 JOIN OrderDetails od ON o.OrderID = od.OrderID
 JOIN Products p ON od.ProductID = p.ProductID
 GROUP BY e.EmployeeID
-ORDER BY TotalRevenue DESC
+ORDER BY MostRevenue DESC
 LIMIT 1;
 ```
 
 --- 17 ---- 
 
-## Customers (name and ID) that have never bought anything
+## The Listing the Customers (name and ID) that have never bought anything.
 
 ```{sql, connection=con}
 SELECT CustomerID, CustomerName
@@ -212,17 +230,18 @@ WHERE CustomerID NOT IN (SELECT DISTINCT CustomerID FROM Orders);
 
 ```{sql, connection=con}
 SELECT c.Country AS Country,
-       AVG(od.Quantity * p.Price) AS AvgOrderTotal
+       AVG(od.Quantity * p.Price) AS AverageOrderTotal
 FROM Customers c
-JOIN OrderDetails od ON o.OrderDetailID = od.OrderID
+JOIN Orders o ON c.CustomerID = o.CustomerID
+JOIN OrderDetails od ON o.OrderID = od.OrderID 
 JOIN Products p ON od.ProductID = p.ProductID
 GROUP BY c.Country
-ORDER BY AvgOrderTotal DESC;
+ORDER BY AverageOrderTotal DESC;
 ```
 
 --- 19 ---
 
-## The customer that sent the most recent order. List of the Order ID, customer name, and country to which the order was shipped.
+## The customer that sent the most recent order. Listing of the Order ID, customer name, and country to which the order was shipped.
 
 ```{sql, connection=con}
 SELECT o.OrderID, c.CustomerName AS CustomerName, c.Country
@@ -233,10 +252,10 @@ WHERE o.OrderDate = (SELECT MAX(OrderDate) FROM Orders);
 
 --- 20 ----
 
-## Number of unique suppliers, from how many different (unique) suppliers do the products come from
+## Number of unique suppliers, from how many different (unique) suppliers do the products come from.
 
 ```{sql, connection=con}
-SELECT COUNT(DISTINCT SupplierID) AS UniqueSuppliers
+SELECT COUNT(DISTINCT SupplierID) AS UniqueSuppliersNum
 FROM Products;
 ```
 
