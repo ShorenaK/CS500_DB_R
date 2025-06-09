@@ -1,0 +1,101 @@
+---
+title: "Analysis of Patient Data"
+Author: Anzhilov Shorena K.
+output:
+  html_document:
+    df_print: paged
+Date: r Sys.Date()
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+# Load necessary libraries
+library(sqldf)
+library(kableExtra)
+library(knitr)
+
+# Read in the dataset
+df <- read.csv("diabetes_data.csv")
+```
+
+```{r data_summary_values, include=FALSE}
+# Pre-calculate values for summary paragraph
+num_records <- nrow(df)
+avg_age <- round(mean(df$Age), 1)
+avg_age_female <- round(mean(df$Age[df$Sex == 1]), 1)
+avg_age_male <- round(mean(df$Age[df$Sex == 0]), 1)
+pct_fruits_veggies <- round(100 * mean(df$Fruits == 1 & df$Veggies == 1), 1)
+pct_smokers <- round(100 * mean(df$Smoker == 1), 1)
+pct_bmi26_no_activity <- round(100 * mean(df$BMI > 26 & df$PhysActivity == 0), 1)
+```
+
+The data set has **`r num_records`** patient records. Males were coded in the data as 0 while females were coded as 1. The mean age for all patients is **`r avg_age`** years (female: **`r avg_age_female`**, male: **`r avg_age_male`**). **`r pct_fruits_veggies`**% of all patients reported eating both fruits and vegetables. **`r pct_smokers`**% of all patients were smokers. **`r pct_bmi26_no_activity`**% of all patients with a BMI over 26 did not report any physical activity.
+
+## Summary of Health Characteristics
+
+```{r avg_age, include=FALSE}
+# Average age by gender
+avg_age <- sqldf("SELECT Sex, ROUND(AVG(Age), 1) AS avg_age FROM df GROUP BY Sex")
+```
+
+```{r pct_diabetes, include=FALSE}
+# Percent diagnosed with diabetes by gender
+pct_diabetes <- sqldf("
+  SELECT Sex, ROUND(100.0 * SUM(Diabetes = 1) / COUNT(*), 1) AS pct_diabetes
+  FROM df GROUP BY Sex")
+```
+
+```{r pct_chol, include=FALSE}
+# Percent with high cholesterol by gender
+pct_chol <- sqldf("
+  SELECT Sex, ROUND(100.0 * SUM(HighChol = 1) / COUNT(*), 1) AS pct_chol
+  FROM df GROUP BY Sex")
+```
+
+```{r bmi_stats, include=FALSE}
+# Calculate BMI cutoff mean + 2 SD
+bmi_mean <- mean(df$BMI, na.rm = TRUE)
+bmi_sd <- sd(df$BMI, na.rm = TRUE)
+bmi_cutoff <- bmi_mean + 2 * bmi_sd
+```
+
+```{r pct_bmi2sd, include=FALSE}
+# Percent with BMI > 2 SD above mean by gender
+pct_bmi2sd <- sqldf(paste0("
+  SELECT Sex, ROUND(100.0 * SUM(BMI > ", bmi_cutoff, ") / COUNT(*), 1) AS pct_bmi2sd
+  FROM df GROUP BY Sex"))
+```
+
+```{r pct_no_activity, include=FALSE}
+# Percent without physical activity by gender
+pct_no_phys <- sqldf("
+  SELECT Sex, ROUND(100.0 * SUM(PhysActivity = 0) / COUNT(*), 1) AS pct_no_activity
+  FROM df GROUP BY Sex")
+```
+
+```{r pct_bp, include=FALSE}
+# Percent with high blood pressure by gender
+pct_bp <- sqldf("
+  SELECT Sex, ROUND(100.0 * SUM(HighBP = 1) / COUNT(*), 1) AS pct_bp
+  FROM df GROUP BY Sex")
+```
+
+```{r merge_results, include=FALSE}
+# Merge all statistics by Sex
+merged_data <- Reduce(function(x, y) merge(x, y, by = "Sex"),
+                      list(avg_age, pct_diabetes, pct_chol, pct_bmi2sd, pct_no_phys, pct_bp))
+
+# Convert Sex to readable gender labels
+merged_data$Sex <- ifelse(merged_data$Sex == 0, "Male", "Female")
+
+# Rename columns for display
+colnames(merged_data) <- c("Gender", "Avg Age", "% Diabetes", "% High Chol", "% BMI > 2SD", "% No Activity", "% High BP")
+
+# Assign to summary_table for rendering
+summary_table <- merged_data
+```
+
+```{r show_table, echo=FALSE, results='asis'}
+# Display the final table using kableExtra
+kable(summary_table, format = "html", caption = "Health Characteristics by Gender") %>%
+  kable_styling(position = "left", bootstrap_options = c("striped", "hover"))
+```
