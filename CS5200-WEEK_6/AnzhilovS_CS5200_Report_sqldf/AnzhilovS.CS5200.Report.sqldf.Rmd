@@ -18,17 +18,29 @@ df <- read.csv("diabetes_data.csv")
 ```
 
 ```{r data_summary_values, include=FALSE}
-# Pre-calculate values for summary paragraph
+# Pre-calculate values for summary paragraph using data provied in CSV
+# Total number of patient records
 num_records <- nrow(df)
+# Mean age across all patients and age for fmelse and age for Males
 avg_age <- round(mean(df$Age), 1)
 avg_age_female <- round(mean(df$Age[df$Sex == 1]), 1)
 avg_age_male <- round(mean(df$Age[df$Sex == 0]), 1)
+
+# Percentage of patients eating both fruits and vegetables
 pct_fruits_veggies <- round(100 * mean(df$Fruits == 1 & df$Veggies == 1), 1)
 pct_smokers <- round(100 * mean(df$Smoker == 1), 1)
-pct_bmi26_no_activity <- round(100 * mean(df$BMI > 26 & df$PhysActivity == 0), 1)
-```
 
-The data set has **`r num_records`** patient records. Males were coded in the data as 0 while females were coded as 1. The mean age for all patients is **`r avg_age`** years (female: **`r avg_age_female`**, male: **`r avg_age_male`**). **`r pct_fruits_veggies`**% of all patients reported eating both fruits and vegetables. **`r pct_smokers`**% of all patients were smokers. **`r pct_bmi26_no_activity`**% of all patients with a BMI over 26 did not report any physical activity.
+# Calculate BMI cutoff mean + 2 SD
+bmi_mean <- mean(df$BMI, na.rm = TRUE)
+bmi_sd <- sd(df$BMI, na.rm = TRUE)
+bmi_cutoff <- bmi_mean + 2 * bmi_sd
+
+# Calculate % with BMI > cutoff and no physical activity
+pct_bmi_high_no_activity <- round(100 * mean(df$BMI > bmi_cutoff & df$PhysActivity == 0), 1)
+
+```
+The data set has **`r num_records`** patient records. Males were coded in the data as 0 while females were coded as 1. The average **age category** for all patients is **`r avg_age`** (female: **`r avg_age_female`**, male: **`r avg_age_male`**). **`r pct_fruits_veggies`**% of all patients reported eating both fruits and vegetables. **`r pct_smokers`**% of all patients were smokers. **`r pct_bmi_high_no_activity`**% of patients had a BMI more than 2 standard deviations above the mean and did not report any physical activity.
+
 
 ## Summary of Health Characteristics
 
@@ -51,12 +63,6 @@ pct_chol <- sqldf("
   FROM df GROUP BY Sex")
 ```
 
-```{r bmi_stats, include=FALSE}
-# Calculate BMI cutoff mean + 2 SD
-bmi_mean <- mean(df$BMI, na.rm = TRUE)
-bmi_sd <- sd(df$BMI, na.rm = TRUE)
-bmi_cutoff <- bmi_mean + 2 * bmi_sd
-```
 
 ```{r pct_bmi2sd, include=FALSE}
 # Percent with BMI > 2 SD above mean by gender
@@ -80,7 +86,7 @@ pct_bp <- sqldf("
 ```
 
 ```{r merge_results, include=FALSE}
-# Merge all statistics by Sex
+# Merge all statistics results into One Table
 merged_data <- Reduce(function(x, y) merge(x, y, by = "Sex"),
                       list(avg_age, pct_diabetes, pct_chol, pct_bmi2sd, pct_no_phys, pct_bp))
 
@@ -96,6 +102,6 @@ summary_table <- merged_data
 
 ```{r show_table, echo=FALSE, results='asis'}
 # Display the final table using kableExtra
-kable(summary_table, format = "html", caption = "Health Characteristics by Gender") %>%
-  kable_styling(position = "left", bootstrap_options = c("striped", "hover"))
+kable(summary_table, format = "html", caption = "Summary of Key Health Metrics by Gender") %>%
+  kable_styling(position = "left")
 ```
