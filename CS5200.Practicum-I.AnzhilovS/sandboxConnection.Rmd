@@ -1,0 +1,25 @@
+---
+title: "sandboxConnection"
+output: html_document
+date: "2025-06-17"
+---
+```{r connect_to_rds, eval=TRUE, warning=FALSE}
+
+# Clear environment
+rm(list = ls())
+
+# Install and load required packages
+if (!require("DBI")) install.packages("DBI")
+if (!require("RMySQL")) install.packages("RMySQL")
+library(DBI)
+library(RMySQL)
+
+# Create connection
+con <- dbConnect(
+  RMySQL::MySQL(),
+  dbname   = "cs5200-practicum-db",
+  host     = "cs5200-practicum-db.c7cm4qiou66y.us-east-2.rds.amazonaws.com",
+  port     = 3306,
+  user     = "admin",
+  password = "Ab20165555"  # replace with your actual password
+)
